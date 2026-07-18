@@ -1,7 +1,7 @@
 // wallpaper.k — Krypton Compiler Core interactive desktop wallpaper.
 // Build with ../build.ps1, then run dist/krypton-wallpaper.exe.
 
-import "../runtime/wallpaper_host.k"
+import "../runtime/wallpaper_host_native.k"
 
 let WALLPAPER_CLASS = "KryptonWallpaperClass"
 
@@ -72,6 +72,13 @@ func sceneRender(hdc, state) {
     let mouseY = toInt(wpGet(state, 40))
     let energy = toInt(wpGet(state, 96))
 
+    // Keep the UI composition centered on very wide and multi-monitor
+    // desktops. The animated background still fills the complete host.
+    let stageWidth = width
+    if stageWidth > 1920 { stageWidth = 1920 }
+    let stageX = (width - stageWidth) / 2
+    let stageCenterX = stageX + stageWidth / 2
+
     let bg = wpGet(state, 112)
     let band = wpGet(state, 120)
     let cyan = wpGet(state, 144)
@@ -123,11 +130,11 @@ func sceneRender(hdc, state) {
     }
 
     // Header and real Krypton source excerpt.
-    wpText(hdc, wpGet(state, 208), wpRgb(222, 248, 255), 54, 42, "KRYPTON // COMPILER CORE")
-    wpText(hdc, wpGet(state, 232), wpRgb(48, 126, 145), 57, 85,
+    wpText(hdc, wpGet(state, 208), wpRgb(222, 248, 255), stageX + 54, 42, "KRYPTON // COMPILER CORE")
+    wpText(hdc, wpGet(state, 232), wpRgb(48, 126, 145), stageX + 57, 85,
            "SELF-HOSTING  ·  NATIVE PE/ELF/MACH-O  ·  NO C IN THE LOOP")
 
-    let codeX = 58
+    let codeX = stageX + 58
     let codeY = 150
     wpBox(hdc, dimPen, wpGet(state, 128), codeX - 20, codeY - 28, 430, 310)
     wpText(hdc, wpGet(state, 216), wpRgb(255, 34, 116), codeX, codeY - 14, "SOURCE.K")
@@ -146,7 +153,7 @@ func sceneRender(hdc, state) {
     }
 
     // The compiler reactor follows the pointer with a restrained parallax.
-    let coreX = width * 61 / 100 + (mouseX - width / 2) / 26
+    let coreX = stageCenterX + (mouseX - stageCenterX) / 30
     let coreY = height * 47 / 100 + (mouseY - height / 2) / 26
     let phase = tick - (tick / 120) * 120
     let wave = phase
@@ -162,7 +169,7 @@ func sceneRender(hdc, state) {
            "CLICK TO INJECT ENERGY")
 
     // Live compilation pipeline.
-    let pipeX = width - 330
+    let pipeX = stageX + stageWidth - 330
     let pipeY = 150
     wpText(hdc, wpGet(state, 216), wpRgb(255, 34, 116), pipeX, pipeY - 48, "NATIVE PIPELINE")
     let active = (tick / 24) - ((tick / 24) / 5) * 5
@@ -186,9 +193,9 @@ func sceneRender(hdc, state) {
         wpRing(hdc, cyanPen, hollow, clickX, clickY, 2 + clickAge * 4)
     }
 
-    wpText(hdc, wpGet(state, 232), wpRgb(37, 103, 118), 55, height - 48,
+    wpText(hdc, wpGet(state, 232), wpRgb(37, 103, 118), stageX + 55, height - 48,
            "KRYPTON WALLPAPER RUNTIME  //  PURE .K  //  WIN32 + GDI")
-    wpText(hdc, wpGet(state, 232), wpRgb(37, 103, 118), width - 245, height - 48,
+    wpText(hdc, wpGet(state, 232), wpRgb(37, 103, 118), stageX + stageWidth - 245, height - 48,
            "FRAME " + tick + "  ENERGY " + energy)
     emit "1"
 }
@@ -248,7 +255,7 @@ just run {
     }
 
     // Starting a second copy replaces the first cleanly.
-    let existing = FindWindowA(WALLPAPER_CLASS, "0")
+    let existing = wpFindWallpaperWindow(WALLPAPER_CLASS)
     if existing != "0" {
         SendMessageA(existing, "16", "0", "0")
     }
@@ -256,11 +263,12 @@ just run {
     wpRegisterClass(WALLPAPER_CLASS, funcptr(kryptonWallpaperProc))
     let hwnd = wpCreateWindow(WALLPAPER_CLASS, "Krypton Compiler Core", preview)
     if hwnd == "0" {
-        MessageBoxA("0", "The native wallpaper window could not be created.",
-                    "Krypton Wallpaper", "16")
+        print("Krypton wallpaper: native window creation failed")
         exit("1")
     }
     sceneInit(wpState())
+    print("Krypton wallpaper started: preview=" + preview + " hwnd=" + hwnd +
+          " size=" + wpGet(wpState(), 16) + "x" + wpGet(wpState(), 24))
     SetTimer(hwnd, "1", "33", "0")
     wpRunLoop()
 }

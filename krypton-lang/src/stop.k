@@ -1,14 +1,13 @@
 // stop.k — asks the running Krypton wallpaper to close cleanly.
 
-jxt {
-    func FindWindowA(className, windowName)
-    func SendMessageA(hwnd, message, wParam, lParam)
-}
+import "../runtime/wallpaper_host_native.k"
 
 just run {
-    let hwnd = FindWindowA("KryptonWallpaperClass", "0")
-    if hwnd != "0" {
-        SendMessageA(hwnd, "16", "0", "0") // WM_CLOSE
+    let hwnd = wpFindWallpaperWindow("KryptonWallpaperClass")
+    if hwnd == "0" {
+        print("Krypton wallpaper is not running")
+        exit("1")
     }
+    SendMessageA(hwnd, "16", "0", "0") // WM_CLOSE
+    print("Krypton wallpaper stopped")
 }
-

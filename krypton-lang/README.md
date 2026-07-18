@@ -16,8 +16,9 @@ runtime.
   Krypton.
 
 Windows system DLLs (`kernel32`, `user32`, and `gdi32`) provide the operating
-system and graphics boundary. The custom Krypton PE backend in `toolchain/`
-adds the small API surface needed by the wallpaper.
+system and graphics boundary. There is no third-party wallpaper engine or C
+shim. At build time, the project gives reserved imports in Krypton's stock PE
+output the Win32/GDI names needed by the wallpaper.
 
 ## Build
 
@@ -38,8 +39,10 @@ For a different installation:
 .\build.ps1 -KryptonRoot "D:\Krypton"
 ```
 
-The build is self-hosted: the installed Krypton compiler compiles the modified
-Krypton PE backend, then that backend compiles the wallpaper and stop utility.
+The installed Krypton frontend, optimizer, and native PE backend compile both
+programs. `build.ps1` then renames the reserved API imports and marks the main
+wallpaper executable as a no-console Windows GUI application. All runtime
+behavior, scene logic, interaction, and Win32 hosting remain Krypton-authored.
 
 ## Run
 
@@ -69,6 +72,17 @@ If Explorer restarts, run `krypton-wallpaper.exe` again so the window can
 attach to Explorer's new WorkerW. If the stop utility cannot find the window,
 end `krypton-wallpaper.exe` from Task Manager.
 
+## Planned settings
+
+The runtime currently centers a maximum 1920-pixel scene stage inside the full
+desktop host. A later settings layer should expose:
+
+- target display (`primary`, a selected display, or the full virtual desktop)
+- horizontal and vertical scene offsets
+- scene width and UI scale
+- frame rate and animation speed
+- particle density, parallax strength, and click-energy strength
+- color palette and reduced-motion mode
 ## Current scope
 
 This first native layer uses GDI so it can be compiled and verified against
