@@ -81,6 +81,8 @@ func sceneRender(hdc, state) {
 
     let bg = wpGet(state, 112)
     let band = wpGet(state, 120)
+    // Leave the empty desktop canvas color-key transparent outside preview mode.
+    if wpGet(state, 80) != "1" { band = bg }
     let cyan = wpGet(state, 144)
     let magenta = wpGet(state, 152)
     let white = wpGet(state, 160)
@@ -219,16 +221,22 @@ func sceneTick(hwnd, state) {
 func kryptonWallpaperProc(hwnd, message, wParam, lParam) {
     let state = wpState()
     let msg = toInt(message)
+    if msg == 132 { emit "-1" } // WM_NCHITTEST: pass pointer input through.
+    if msg == 33 { emit "3" }   // WM_MOUSEACTIVATE: MA_NOACTIVATE.
     if msg == 15 { // WM_PAINT
         let paint = wpPaintPtr(state)
         let hdc = BeginPaint(hwnd, paint)
         sceneRender(hdc, state)
         EndPaint(hwnd, paint)
+        // Long-running Krypton loops must collect after per-frame function
+        // roots have been popped, or temporary numeric strings accumulate.
+        gcCollect()
         emit "0"
     }
     if msg == 20 { emit "1" } // WM_ERASEBKGND: full scene paint owns bg.
     if msg == 275 { // WM_TIMER
         sceneTick(hwnd, state)
+        gcCollect()
         emit "0"
     }
     if msg == 126 { // WM_DISPLAYCHANGE
@@ -269,7 +277,8 @@ just run {
     sceneInit(wpState())
     print("Krypton wallpaper started: preview=" + preview + " hwnd=" + hwnd +
           " size=" + wpGet(wpState(), 16) + "x" + wpGet(wpState(), 24))
-    SetTimer(hwnd, "1", "33", "0")
+    SetTimer(hwnd, "1", "50", "0")
+    InvalidateRect(hwnd, "0", "1")
     wpRunLoop()
 }
 

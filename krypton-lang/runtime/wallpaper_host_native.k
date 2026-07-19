@@ -18,7 +18,7 @@ jxt {
     // user32.dll stock slots; renamed in the generated PE by build.ps1.
     func MessageBoxA(a0, a1, a2, a3)                  // -> FindWindowA
     func CreatePopupMenu(a0, a1, a2, a3)             // -> FindWindowExA
-    func GetForegroundWindow()                        // -> GetDesktopWindow
+    func GetForegroundWindow()
     func SetForegroundWindow(a0, a1, a2)             // -> SetWindowLongPtrA
     func GetWindow(a0, a1)                            // -> SetParent
     func GetWindowTextA(a0, a1, a2)                  // -> BeginPaint
@@ -26,6 +26,7 @@ jxt {
     func UpdateWindow(a0)                             // -> GetCursorPos
     func SetClassLongPtrA(a0, a1, a2)                // -> ScreenToClient
     func GetSystemMetrics(a0)                         // -> GetAsyncKeyState
+    func SetProcessDpiAwarenessContext(a0, a1, a2, a3) // -> SetLayeredWindowAttributes
 
     // Unchanged user32.dll slots.
     func SendMessageA(hwnd, message, wParam, lParam)
@@ -69,7 +70,6 @@ func FindWindowExA(parent, childAfter, className, windowName) {
     emit CreatePopupMenu(intToPtr(parent), intToPtr(childAfter), className, intToPtr("0"))
 }
 
-func GetDesktopWindow() { emit GetForegroundWindow() }
 func SetParent(child, parent) { emit GetWindow(child, parent) }
 func SetWindowLongPtrA(hwnd, index, value) {
     emit SetForegroundWindow(hwnd, intToPtr(index + ""), intToPtr(value + ""))
@@ -79,6 +79,10 @@ func EndPaint(hwnd, paint) { emit SetWindowTextA(hwnd, paint) }
 func GetCursorPos(point) { emit UpdateWindow(ptrToInt(point)) }
 func ScreenToClient(hwnd, point) { emit SetClassLongPtrA(hwnd, ptrToInt(point), "0") }
 func GetAsyncKeyState(key) { emit GetSystemMetrics(key) }
+func SetLayeredWindowAttributes(hwnd, colorKey, alpha, flags) {
+    emit SetProcessDpiAwarenessContext(hwnd, intToPtr(colorKey + ""),
+                                       intToPtr(alpha + ""), intToPtr(flags + ""))
+}
 func TextOutA(hdc, x, y, text, count) {
     emit GetTextExtentPoint32A(hdc, intToPtr(x + ""), y + "", text, intToPtr(count + ""))
 }
@@ -193,7 +197,7 @@ func wpRegisterClass(className, windowProc) {
     bufSetQwordAt(wc, "8", windowProcAddr())
     bufSetQwordAt(wc, "24", instance)
     bufSetQwordAt(wc, "40", LoadCursorA("0", "32512"))
-    bufSetQwordAt(wc, "48", GetStockObject("4"))
+    bufSetQwordAt(wc, "48", "0") // Scene owns the background paint.
     bufSetQwordAt(wc, "64", ptrToInt(className))
     emit RegisterClassExA(wc)
 }
@@ -235,7 +239,7 @@ func wpFindDesktopHost() {
     }
     if best != "0" { emit best }
     if progman != "0" { emit progman }
-    emit GetDesktopWindow()
+    emit "0"
 }
 
 func wpFindWallpaperWindow(className) {
@@ -285,24 +289,27 @@ func wpAttachToDesktop(hwnd, state) {
     let host = wpFindDesktopHost()
     if host == "0" { emit "0" }
     wpSet(state, 88, host)
-    SetWindowLongPtrA(hwnd, "-16", "1342177280") // WS_CHILD | WS_VISIBLE
-    SetParent(hwnd, host)
-    let hostRect = wpRectPtr(state)
-    GetClientRect(host, hostRect)
-    let width = toInt(bufGetDwordAt(hostRect, "8"))
-    let height = toInt(bufGetDwordAt(hostRect, "12"))
-    if width <= 0 { width = 1920 }
-    if height <= 0 { height = 1080 }
-    SetWindowPos(hwnd, "1", "0", "0", width, height, "112")
+
+    // This Explorer build composites its static wallpaper over embedded
+    // children. Keep Krypton as a click-through layered popup instead. The
+    // exact scene background color becomes transparent; neon UI remains.
+    // Current target-display setting: DISPLAY2, a horizontal 1440p panel.
+    // These values become user-configurable once the settings layer lands.
+    let targetX = -2560
+    let targetY = -198
+    let width = 2560
+    let height = 1440
+    SetLayeredWindowAttributes(hwnd, wpRgb(2, 7, 13), 235, 3)
+    let foreground = "0" // HWND_TOP; WS_EX_NOACTIVATE prevents focus theft.
+    SetWindowPos(hwnd, foreground, targetX, targetY, width, height, "80")
     wpSet(state, 16, width)
     wpSet(state, 24, height)
     emit "1"
 }
-
 func wpCreateWindow(className, title, preview) {
     let state = wpState()
     let instance = GetModuleHandleA("0")
-    let exStyle = "134217888"
+    let exStyle = "134742176"
     let style = "2147483648"
     let x = "0"
     let y = "0"

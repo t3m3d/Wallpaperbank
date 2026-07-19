@@ -72,7 +72,6 @@ function Set-WallpaperImports {
     $Aliases = [ordered]@{
         "MessageBoxA" = "FindWindowA"
         "CreatePopupMenu" = "FindWindowExA"
-        "GetForegroundWindow" = "GetDesktopWindow"
         "SetForegroundWindow" = "SetWindowLongPtrA"
         "GetWindowTextA" = "BeginPaint"
         "SetWindowTextA" = "EndPaint"
@@ -84,6 +83,7 @@ function Set-WallpaperImports {
         "CreateFontIndirectA" = "CreatePen"
         "SetBkColor" = "MoveToEx"
         "DeleteObject" = "LineTo"
+        "SetProcessDpiAwarenessContext" = "SetLayeredWindowAttributes"
     }
     foreach ($Alias in $Aliases.GetEnumerator()) {
         $Bytes = Patch-AsciiImport -Bytes $Bytes -From $Alias.Key -To $Alias.Value
