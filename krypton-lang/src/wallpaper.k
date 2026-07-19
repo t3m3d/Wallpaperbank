@@ -96,20 +96,6 @@ func sceneRender(hdc, state) {
     wpFill(hdc, state, 0, 0, width, height, bg)
     wpFill(hdc, state, 0, height * 2 / 3, width, height / 3 + 1, band)
 
-    // Scrolling perspective-neutral grid.
-    let gridOffsetX = (tick / 2) - ((tick / 2) / 64) * 64
-    let gx = 0 - 64 + gridOffsetX
-    while gx < width + 64 {
-        wpLine(hdc, gridPen, gx, 0, gx, height)
-        gx += 64
-    }
-    let gridOffsetY = tick - (tick / 64) * 64
-    let gy = 0 - 64 + gridOffsetY
-    while gy < height + 64 {
-        wpLine(hdc, gridPen, 0, gy, width, gy)
-        gy += 64
-    }
-
     // Pointer-reactive data particles. Every point is deterministic, so the
     // scene has no mutable particle array and stays friendly to the GC.
     let p = 0

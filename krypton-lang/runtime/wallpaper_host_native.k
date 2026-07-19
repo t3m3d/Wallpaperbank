@@ -293,12 +293,13 @@ func wpAttachToDesktop(hwnd, state) {
     // This Explorer build composites its static wallpaper over embedded
     // children. Keep Krypton as a click-through layered popup instead. The
     // exact scene background color becomes transparent; neon UI remains.
-    // Current target-display setting: DISPLAY2, a horizontal 1440p panel.
+    // Current target-display setting: the horizontal secondary 1440p panel.
     // These values become user-configurable once the settings layer lands.
     let targetX = -2560
     let targetY = -198
     let width = 2560
-    let height = 1440
+    // DISPLAY7 working area excludes its 48-pixel bottom taskbar.
+    let height = 1392
     SetLayeredWindowAttributes(hwnd, wpRgb(2, 7, 13), 235, 3)
     let foreground = "0" // HWND_TOP; WS_EX_NOACTIVATE prevents focus theft.
     SetWindowPos(hwnd, foreground, targetX, targetY, width, height, "80")

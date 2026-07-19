@@ -1,9 +1,21 @@
 # Krypton Compiler Core Wallpaper
 
-A native interactive Windows wallpaper authored in Krypton. It attaches its
-own Win32 window behind the Explorer desktop icons and renders the scene with
+A native interactive Windows wallpaper authored in Krypton. It renders a
+click-through layered Win32 surface over a static KryptonBytes background with
 GDI. It does not require Lively, Wallpaper Engine, HTML, JavaScript, or a web
 runtime.
+
+## Cerebral Desktop role
+
+`Wallpaperbank/krypton-lang/` is the visual component of Cerebral Desktop. It
+owns only the desktop artwork and ambient interaction layer. It deliberately
+does not own application menus, status indicators, the clock, or the system
+tray; those belong to the planned **Parietal** AppBar.
+
+The intended layer order is static Windows wallpaper, Krypton overlay, normal
+applications, then Parietal. The overlay is non-activating and click-through,
+while Parietal will be interactive and reserve a top work-area strip. See the
+[Cerebral Desktop README](../README.md) for the complete integration contract.
 
 ## What it does
 
@@ -11,7 +23,9 @@ runtime.
   pipeline.
 - Reacts to the pointer without intercepting desktop icon input.
 - Converts desktop clicks into visible compile-energy shockwaves.
-- Spans the Windows virtual desktop and responds to display changes.
+- Targets the horizontal secondary display for the current prototype.
+- Uses that display's work area so rendering stops above the taskbar.
+- Leaves its empty canvas transparent over the KryptonBytes background.
 - Runs its window procedure, state management, animation, and drawing logic in
   Krypton.
 
@@ -52,7 +66,7 @@ Preview in a normal resizable window first:
 .\dist\krypton-wallpaper.exe --preview
 ```
 
-Set it as the wallpaper:
+Start the live overlay:
 
 ```powershell
 .\dist\krypton-wallpaper.exe
@@ -68,21 +82,24 @@ Starting another copy also closes and replaces the running copy.
 
 ## Recovery
 
-If Explorer restarts, run `krypton-wallpaper.exe` again so the window can
-attach to Explorer's new WorkerW. If the stop utility cannot find the window,
-end `krypton-wallpaper.exe` from Task Manager.
+If Explorer or the graphics driver restarts, run `krypton-wallpaper.exe` again.
+If the stop utility cannot find the window, end `krypton-wallpaper.exe` from
+Task Manager.
 
 ## Planned settings
 
-The runtime currently centers a maximum 1920-pixel scene stage inside the full
-desktop host. A later settings layer should expose:
+The runtime currently centers a maximum 1920-pixel scene stage inside the
+selected secondary display's work area. A later settings layer should expose:
 
 - target display (`primary`, a selected display, or the full virtual desktop)
+- dynamic monitor and work-area discovery for Parietal AppBar integration
 - horizontal and vertical scene offsets
 - scene width and UI scale
+- overlay opacity and static-background mode
 - frame rate and animation speed
 - particle density, parallax strength, and click-energy strength
 - color palette and reduced-motion mode
+
 ## Current scope
 
 This first native layer uses GDI so it can be compiled and verified against
